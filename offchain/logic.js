@@ -408,8 +408,11 @@ export class Logic {
       challengePeriod
     )
 
-    console.log(`recomputed fingerprint: ${fingerprint}`)
-    console.log(`passed signature: ${signature0}`)
+    console.log('\n-------------------')
+    console.log(`fingerprint: ${fingerprint}`)
+    console.log(`signature: ${signature0}`)
+    console.log(`address0: ${address0}`)
+    console.log('-------------------\n')
 
     const valid = await this.contract.ecverify.call(
       fingerprint,

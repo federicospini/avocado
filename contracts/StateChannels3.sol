@@ -1,6 +1,8 @@
 pragma solidity ^0.4.8;
 
 
+/** StateChannel3.sol ver 1.0.1 **/
+
 contract StateChannels {
     uint8 constant PHASE_OPEN = 0;
     uint8 constant PHASE_CHALLENGE = 1;
@@ -83,7 +85,8 @@ contract StateChannels {
         return b;
     }
 
-    function getChannel(bytes32 channelId) returns(
+    function getChannel(bytes32 inputChannelId) returns(
+        bytes32 channelId,
         address address0,
         address address1,
         uint8 phase,
@@ -92,13 +95,16 @@ contract StateChannels {
         bytes state,
         uint sequenceNumber
     ) {
-        address0 = channels[channelId].address0;
-        address1 = channels[channelId].address1;
-        phase = channels[channelId].phase;
-        challengePeriod = channels[channelId].challengePeriod;
-        closingBlock = channels[channelId].closingBlock;
-        state = channels[channelId].state;
-        sequenceNumber = channels[channelId].sequenceNumber;
+        Channel channel = channels[inputChannelId];
+
+        channelId = channel.channelId;
+        address0 = channel.address0;
+        address1 = channel.address1;
+        phase = channel.phase;
+        challengePeriod = channel.challengePeriod;
+        closingBlock = channel.closingBlock;
+        state = channel.state;
+        sequenceNumber = channel.sequenceNumber;
     }
 
     function newChannel(
