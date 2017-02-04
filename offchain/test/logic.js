@@ -7,7 +7,11 @@ import bn2s from 'bignumber-to-string'
 test('happy path', async t => {
   const idOne = '0x0000000000000000000000000000000000000000000000000000000000000001'
   const snapshots = {}
-  const {alice, bob, accounts, web3} = await setup()
+  const input = await setup()
+  const {alice, bob, accounts, web3} = input
+
+  // console.log('logic.js')
+  // console.log(input)
 
   snapshots.clean = await p(snapshot)(web3.currentProvider)
 
@@ -46,9 +50,13 @@ test('happy path', async t => {
       channelId: '0x0000000000000000000000000000000000000000000000000000000000000001',
       sequenceNumber: 1,
       state: '0x3333',
-      signature0: '0xb834aee7dec23070a03a202ab74c44f7f38dccd688059c4982981ca9ffdca1c732666f9c17f914f65602e0e5097c7f8f338bf7d62551e0c92b3eaa8033c284391b',
-      signature1: '0xe588a2561d213c106d7fa7defc81280b87f8fddd2812e77d68f62aab079dbca228e87a59b617e93623ab34cfa2c1b6eabf83d98fa176b3086d26cfdcfd2f945a1b'
+      signature0: '0xb834aee7dec23070a03a202ab74c44f7f38dccd688059c4982981ca9ffdca1c732666f9c17f914f65602e0e5097c7f8f338bf7d62551e0c92b3eaa8033c2843900',
+      signature1: '0xe588a2561d213c106d7fa7defc81280b87f8fddd2812e77d68f62aab079dbca228e87a59b617e93623ab34cfa2c1b6eabf83d98fa176b3086d26cfdcfd2f945a00'
     }
+
+    // console.log('- offchain/logic.js:57')
+    // console.log(bob.fakeStore.channels[idOne].acceptedUpdates[0])
+    // console.log(expectedUpdate)
 
     t.deepEqual(
       bob.fakeStore.channels[idOne].acceptedUpdates[0],

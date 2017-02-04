@@ -31,7 +31,7 @@ export default async () => {
     return async function post (url, body) {
       const [ who, method ] = url.split('/')
 
-      try {
+      try { // alice.bob.addProposedChannel(body, alice)
         return await apis[who][calls['/' + method]](body, myUrl)
       } catch (error) {
         console.log(error)

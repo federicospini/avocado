@@ -1,9 +1,19 @@
 pragma solidity ^0.4.8;
-import "ECVerify.sol";
-contract StateChannels is ECVerify {
+
+
+contract StateChannels {
     uint8 constant PHASE_OPEN = 0;
     uint8 constant PHASE_CHALLENGE = 1;
     uint8 constant PHASE_CLOSED = 2;
+    
+    event Error(string message);
+    event LogString(string label, string message);
+    event LogBytes(string label, bytes message);
+    event LogUint8(string label, uint8 num);
+    event LogBytes32(string label, bytes32 message);
+    event LogNum256(string label, uint256 num);
+    event LogBool(string label, bool b);
+    event LogAddress(string label, address a);
 
     mapping (bytes32 => Channel) channels;
 
@@ -16,6 +26,55 @@ contract StateChannels is ECVerify {
         uint closingBlock;
         bytes state;
         uint sequenceNumber;
+    }
+
+    function ecrecovery(bytes32 hash, bytes sig) constant returns (address) {
+        bytes32 r;
+        bytes32 s;
+        bytes32 v_test;
+        uint8 v_temp = 1;
+        uint8 v;
+        address a;
+        
+        if (sig.length != 65) {
+            throw;
+        }
+
+        // The signature format is a compact form of:
+        //   {bytes32 r}{bytes32 s}{uint8 v}
+        // Compact means, uint8 is not padded to 32 bytes.
+        assembly {
+            r := mload(add(sig, 32))
+            s := mload(add(sig, 64))
+            v_test := mload(add(sig, 65))
+            v_temp := mload(add(sig, 65))
+            // v_temp := and(mload(add(sig, 65)), 255)
+        }
+        
+        // // old geth sends a `v` value of [0,1], while the new, in line with the YP sends [27,28]
+        if (v_temp < 27) {
+            v = v_temp + 27;
+        } else {
+            v = v_temp;
+        }
+        
+        a = ecrecover(hash, v, r, s);
+        
+        LogBytes32('hash', hash);
+        LogBytes('sig', sig);
+        LogBytes32('r', r);
+        LogBytes32('s', s);
+        LogBytes32('v_test', v_test);
+        LogUint8('v_temp', v_temp);
+        LogUint8('v', v);
+        LogAddress('a', a);
+        
+        return a;
+    }
+    
+    function ecverify(bytes32 hash, bytes sig, address signer) constant returns (bool b) {
+        b = ecrecovery(hash, sig) == signer;
+        return b;
     }
 
     function getChannel(bytes32 channelId) returns(
@@ -35,12 +94,6 @@ contract StateChannels is ECVerify {
         state = channels[channelId].state;
         sequenceNumber = channels[channelId].sequenceNumber;
     }
-
-    event Error(string message);
-    event LogString(string label, string message);
-    event LogBytes(string label, bytes message);
-    event LogBytes32(string label, bytes32 message);
-    event LogNum256(uint256 num);
 
     function newChannel(
         bytes32 channelId,

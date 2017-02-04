@@ -1,6 +1,7 @@
 import fs from 'fs'
 import Web3 from 'web3'
-import Pudding from 'ether-pudding'
+// import Pudding from 'ether-pudding'
+var Pudding = require('truffle-artifactor')
 import p from 'es6-promisify'
 import TestRPC from 'ethereumjs-testrpc'
 import solc from 'solc'
@@ -37,13 +38,16 @@ export default async function () {
   const web3 = new Web3()
   web3.setProvider(new Web3.providers.HttpProvider('http://localhost:' + TESTRPC_PORT))
   const accounts = await p(web3.eth.getAccounts)()
-  web3.eth.defaultAccount = accounts[0]
 
+  web3.eth.defaultAccount = accounts[0]
 
   // INSTANTIATE PUDDING CONTRACT ABSTRACTION
   const StateChannels = require(PUDDING_PATH + './StateChannels.sol.js')
   StateChannels.setProvider(new Web3.providers.HttpProvider('http://localhost:' + TESTRPC_PORT))
   const contract = await StateChannels.new()
 
-  return  { contract, web3, accounts }
+  var out = { contract, web3, accounts }
+  // console.log('setup.js')
+  // console.log(out)
+  return  out 
 }

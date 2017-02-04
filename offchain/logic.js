@@ -4,6 +4,12 @@ import leftPad from 'left-pad'
 import p from 'es6-promisify'
 import { Hex, Address, Bytes32 } from './types.js'
 import t from 'tcomb'
+import {inspect as inspct} from 'util'
+
+function inspect (obj) {
+  return inspct(obj, { showHidden: true, depth: null, colors: true })
+}
+
 
 function checkSuccess (res) {
   if (!res) {
@@ -14,7 +20,7 @@ function checkSuccess (res) {
     throw '(peer error) ' + res.error
   }
 
-  if (!res.success) {
+  if (!res.body.success) {
     throw new Error('peer returned unexpected value')
   }
 }
@@ -72,6 +78,7 @@ export class Logic {
 
   // Propose a new channel and send to counterparty
   async proposeChannel (params) {
+
     const counterpartyUrl = t.String(params.counterpartyUrl)
     const channelId = Bytes32(params.channelId)
     const address0 = Address(params.myAddress)
@@ -89,6 +96,8 @@ export class Logic {
     )
 
     const signature0 = await p(this.web3.eth.sign)(address0, fingerprint)
+
+    console.log(`fingerprint: ${fingerprint}, signature: ${signature0}`)
 
     checkSuccess(await this.post(counterpartyUrl + '/add_proposed_channel', {
       channelId,
@@ -119,13 +128,18 @@ export class Logic {
   // Called by the counterparty over the http api, gets added to the
   // proposed channel list
   async addProposedChannel (channel, counterpartyUrl) {
-    t.String(counterpartyUrl)
     await this.verifyChannel(channel)
-    channel.counterpartyUrl = counterpartyUrl
+    
+    if (counterpartyUrl) {
+      t.String(counterpartyUrl)
+      channel.counterpartyUrl = counterpartyUrl
+    } 
 
     let proposedChannels = this.storage.getItem('proposedChannels') || {}
     proposedChannels[channel.channelId] = channel
     this.storage.setItem('proposedChannels', proposedChannels)
+
+    console.log('%%%%%% channel proposed!')
 
     return { success: true }
   }
@@ -134,6 +148,11 @@ export class Logic {
 
   // Get a channel from the proposed channel list and accept it
   async acceptProposedChannel (channelId) {
+    channelId = channelId.channelId || channelId
+    console.log('channelId:')
+    console.dir(channelId)
+    console.log('proposedChannels:')
+    console.dir(this.storage.getItem('proposedChannels'))
     const channel = this.storage.getItem('proposedChannels')[channelId]
 
     if (!channel) {
@@ -151,6 +170,15 @@ export class Logic {
   async acceptChannel (channel) {
     const fingerprint = await this.verifyChannel(channel)
     const signature1 = await p(this.web3.eth.sign)(channel.address1, fingerprint)
+
+    console.log('ACCEPT CHANNEL')
+    console.log(`channelId: ${channel.channelId}`)
+    console.log(`address0: ${channel.address0}`)
+    console.log(`address1: ${channel.address1}`)
+    console.log(`state: ${channel.state}`)
+    console.log(`challengePeriod: ${channel.challengePeriod}`)
+    console.log(`signature0: ${channel.signature0}`)
+    console.log(`signature1: ${signature1}`)
 
     await this.contract.newChannel(
       channel.channelId,
@@ -237,17 +265,24 @@ export class Logic {
 
   // Sign the update and send it back to the counterparty
   async acceptUpdate (update) {
+    console.log('.method: acceptUpdate')
+
     const channel = this.storage.getItem('channels')[update.channelId]
+    console.log(`channel: ${inspect(channel)}`)
 
     const fingerprint = await this.verifyUpdate({
       channel,
       update
     })
 
+    console.log(`fingerprint: ${inspect(fingerprint)}`)
+
     const signature = await p(this.web3.eth.sign)(
       channel['address' + channel.me],
       fingerprint
     )
+
+    console.log(`signature: ${inspect(signature)}`);
 
     update['signature' + channel.me] = signature
 
@@ -261,7 +296,9 @@ export class Logic {
 
   // Accepts last update from theirProposedUpdates
   async acceptLastUpdate (channelId) {
+    console.log('.method: acceptLastUpdate')
     const channel = this.storage.getItem('channels')[channelId]
+    console.log(`channel: ${inspect(channel)}`)
     const lastUpdate = channel.theirProposedUpdates[
       channel.theirProposedUpdates.length - 1
     ]
@@ -281,7 +318,6 @@ export class Logic {
       update,
       checkMySignature: true
     })
-
 
 
     if (update.sequenceNumber <= highestAcceptedSequenceNumber(channel)) {
@@ -372,11 +408,16 @@ export class Logic {
       challengePeriod
     )
 
+    console.log(`recomputed fingerprint: ${fingerprint}`)
+    console.log(`passed signature: ${signature0}`)
+
     const valid = await this.contract.ecverify.call(
       fingerprint,
       signature0,
       address0
     )
+
+    console.log(`***** IS VALID: ${valid}`)
 
     if (!valid) {
       throw new Error('signature0 invalid')
@@ -452,7 +493,7 @@ export class Logic {
 
     args = args.join('')
 
-    return '0x' + this.web3.sha3(args, { encoding: 'hex' })
+    return this.web3.sha3(args, { encoding: 'hex' })
   }
 }
 

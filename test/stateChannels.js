@@ -2,6 +2,11 @@ import test from 'blue-tape'
 import leftPad from 'left-pad'
 import p from 'es6-promisify'
 import setup from '../setup'
+import {inspect as inspct} from 'util'
+
+function inspect (obj) {
+  return inspct(obj, { showHidden: true, depth: null, colors: true })
+}
 
 test('StateChannels', async () => {
 
@@ -98,8 +103,8 @@ test('StateChannels', async () => {
         )
 
         // Wrong account
-        const sig0 = p(web3.eth.sign)(accounts[2], fingerprint)
-        const sig1 = p(web3.eth.sign)(accounts[1], fingerprint)
+        const sig0 = p(web3.eth.sign)(accounts[3], fingerprint)
+        const sig1 = p(web3.eth.sign)(accounts[2], fingerprint)
 
         await contract.newChannel(
             channelId,
@@ -111,8 +116,8 @@ test('StateChannels', async () => {
             sig1
         )
         const logs = await p(errLog.get.bind(errLog))()
-
-        t.equal(logs[0].args.message, 'signature0 invalid', 'did not return error');
+// console.log(inspect(logs))
+        t.equal(logs[1].args.message, 'signature0 invalid', 'did not return error');
 
         errLog.stopWatching()
     });
@@ -120,6 +125,9 @@ test('StateChannels', async () => {
 
     test('rejects channel with non-valid signature1', async t => {
         const errLog = contract.Error([{ code: 1 }])
+
+        console.log(errLog)
+
         const challengePeriod = 1
         const channelId = '0x3000000000000000000000000000000000000000000000000000000000000000'
         const state = '0x1111'
@@ -148,8 +156,8 @@ test('StateChannels', async () => {
         )
 
         const logs = await p(errLog.get.bind(errLog))()
-
-        t.equal(logs[0].args.message, 'signature1 invalid', 'did not return error');
+// console.log(inspect(logs))
+        t.equal(logs[2].args.message, 'signature1 invalid', 'did not return error');
 
         errLog.stopWatching()
     });
