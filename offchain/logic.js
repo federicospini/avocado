@@ -40,8 +40,8 @@ export class Logic {
   }
 
   // Test CLI
-  async testCli () {
-    return 'hello'
+  async testCli (params) {
+    return params
   }
 
   // View proposed channels
