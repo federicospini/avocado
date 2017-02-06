@@ -1,3 +1,5 @@
+var request = require('request')
+var clc = require('cli-color')
 var argv = require('minimist')(process.argv.slice(2), {
   string: [
     'myAddress',
@@ -10,14 +12,25 @@ var argv = require('minimist')(process.argv.slice(2), {
     'signature1'
   ]
 })
-var avocadoProvider = argv.a || 'http://localhost:3020'
-var request = require('request')
 
-console.log('Request:\n', avocadoProvider + '/' + argv._[0], JSON.stringify(argv,null,2), '\n')
+var toAddress = clc.red.bold(argv.counterpartyAddress)
+var toUrl = clc.green.italic(argv.counterpartyUrl)
+var fromAddress = clc.red.bold(argv.myAddress)
+var fromUrl = clc.green.italic(argv.myUrl)
+var method = clc.yellow.italic(argv._[0])
+var params = Object.assign({}, argv)
+delete params['_']
+params = JSON.stringify(params, null, 2)
 
-post(avocadoProvider + '/' + argv._[0], argv, function (err, res, body) {
-  console.log('Response:\n', err || '', body, '\n')
-})
+console.log(`\nRequest:\n--------\nfrom: ${fromAddress} - ${fromUrl}\n  to: ${toAddress} - ${toUrl}\n\nmethod: ${method}\nparams: ${params}\n`)
+
+// TODO: check exsistence of mandatory parameters
+
+post(argv.counterpartyUrl + '/' + argv._[0], argv, response)
+
+function response (err, res, body) {
+  console.log('\nResponse:\n---------\n', err || '', body, '\n')
+}
 
 function post(url, body, callback) {
   request.post({

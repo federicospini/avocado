@@ -2,22 +2,34 @@
 
 >  run cli, not use npm run!
 
-## PROPOSE CHANNEL
+## TEST CLI
 
 ```
-node offchain/cli.js propose_channel --myAddress=0x002af5FB407D8B6290EA00c6EA9328af91a2BccB --counterpartyAddress=0x00798eaa5c12FD38ff58aD51c985D805C02eB429 --counterpartyUrl=http://localhost:4020 --channelId=0x0000000000000000000000000000000000000000000000000000000000000100 --state=0x10 --challengePeriod=80
+node offchain/cli.js test_cli --myAddress=0x0077cdf65cAD0b5ca9C2af69CD6743f396f616F0 --myUrl=http://localhost:4021 --counterpartyAddress=0x00798eaa5c12FD38ff58aD51c985D805C02eB429 --counterpartyUrl=http://localhost:4021 
+```
+
+## PROPOSE CHANNEL
+
+Alice proposes a new channel to Bob
+
+```
+node offchain/cli.js propose_channel --myAddress=0x0077cdf65cAD0b5ca9C2af69CD6743f396f616F0 --myUrl=http://localhost:4021 --counterpartyAddress=0x00798eaa5c12FD38ff58aD51c985D805C02eB429 --counterpartyUrl=http://localhost:4022 --channelId=0x0000000000000000000000000000000000000000000000000000000000000100 --state=0x10 --challengePeriod=80
 ```
 
 ## VIEW PROPOSED CHANNEL
 
+Bob checks channels proposed to him
+
 ```
-node offchain/cli.js view_proposed_channels
+node offchain/cli.js view_proposed_channels --counterpartyAddress=0x00798eaa5c12FD38ff58aD51c985D805C02eB429 --counterpartyUrl=http://localhost:4022
 ```
 
 ## ACCEPT PROPOSED CHANNEL
 
+Bob accepts a channel proposed to him
+
 ```
-node offchain/cli.js accept_proposed_channel --myAddress=0x00798eaa5c12FD38ff58aD51c985D805C02eB429 --counterpartyAddress=0x002af5FB407D8B6290EA00c6EA9328af91a2BccB --counterpartyUrl=http://localhost:4020 --channelId=0x0000000000000000000000000000000000000000000000000000000000000100 
+node offchain/cli.js accept_proposed_channel --myAddress=0x0077cdf65cAD0b5ca9C2af69CD6743f396f616F0 --myUrl=http://localhost:4021 --counterpartyAddress=0x00798eaa5c12FD38ff58aD51c985D805C02eB429 --counterpartyUrl=http://localhost:4022 --channelId=0x0000000000000000000000000000000000000000000000000000000000000100 
 ```
 
 ## PROPOSE UPDATE

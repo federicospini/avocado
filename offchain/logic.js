@@ -10,7 +10,6 @@ function inspect (obj) {
   return inspct(obj, { showHidden: true, depth: null, colors: true })
 }
 
-
 function checkSuccess (res) {
   if (!res) {
     throw new Error('no response')
@@ -20,23 +19,21 @@ function checkSuccess (res) {
     throw '(peer error) ' + res.error
   }
 
+  // console.log('checkSuccess:', res)
+
   if (!res.body.success) {
     throw new Error('peer returned unexpected value')
   }
 }
 
-
 export class Logic {
-  constructor({
-    storage,
-    contract,
-    web3,
-    post
-  }) {
+  constructor ({ storage, contract, web3, post, address, url }) {
     this.storage = storage
     this.contract = contract
     this.web3 = web3
     this.post = post
+    this.address = address
+    this.url = url
   }
 
   // Test CLI
@@ -49,16 +46,13 @@ export class Logic {
     return this.storage.getItem('proposedChannels')
   }
 
-
-
   // View one proposed channel
   async viewProposedChannel (channelId) {
     const proposedChannels = this.storage.getItem('proposedChannels')
     return proposedChannels[channelId]
   }
 
-  // Get the channel from the blockchain, update the local,
-  // and return it
+  // Get the channel from the blockchain, update the local, and return it
   async getBlockchainChannel (channelId) {
     Bytes32(channelId)
     const channel = await this.contract.getChannel.call(
@@ -97,7 +91,7 @@ export class Logic {
 
     const signature0 = await p(this.web3.eth.sign)(address0, fingerprint)
 
-    console.log(`fingerprint: ${fingerprint}, signature: ${signature0}`)
+    console.log(`\nfingerprint: ${fingerprint}\n, signature: ${signature0}\n`)
 
     checkSuccess(await this.post(counterpartyUrl + '/add_proposed_channel', {
       channelId,
@@ -105,7 +99,8 @@ export class Logic {
       address1,
       state,
       challengePeriod,
-      signature0
+      signature0,
+      url: this.url
     }))
 
     this.storeChannel({
@@ -125,21 +120,25 @@ export class Logic {
 
 
 
-  // Called by the counterparty over the http api, gets added to the
-  // proposed channel list
-  async addProposedChannel (channel, counterpartyUrl) {
+  // Called by the counterparty over the http api, gets added to the proposed channel list
+  async addProposedChannel ({ channelId, address0, address1, state, challengePeriod, signature0, url }) {
+    t.String(url)
+
+    var channel = {
+      channelId,
+      address0,
+      address1,
+      state,
+      challengePeriod,
+      signature0,
+      counterpartyUrl: url
+    }
+
     await this.verifyChannel(channel)
     
-    if (counterpartyUrl) {
-      t.String(counterpartyUrl)
-      channel.counterpartyUrl = counterpartyUrl
-    } 
-
     let proposedChannels = this.storage.getItem('proposedChannels') || {}
     proposedChannels[channel.channelId] = channel
     this.storage.setItem('proposedChannels', proposedChannels)
-
-    console.log('%%%%%% channel proposed!')
 
     return { success: true }
   }
