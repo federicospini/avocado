@@ -26,20 +26,36 @@ export default function (globals) {
     }
   }
 
-  app.post('/test_cli', handlerFactory('testCli'))
-  app.post('/view_proposed_channels', handlerFactory('viewProposedChannels'))
-  app.post('/propose_channel', handlerFactory('proposeChannel'))
-  app.post('/accept_channel', handlerFactory('acceptChannel'))
-  app.post('/accept_proposed_channel', handlerFactory('acceptProposedChannel'))
-  app.post('/propose_update', handlerFactory('proposeUpdate'))
-  app.post('/accept_update', handlerFactory('acceptUpdate'))
-  app.post('/accept_last_update', handlerFactory('acceptLastUpdate'))
-  app.post('/post_update', handlerFactory('postUpdate'))
-  app.post('/start_challenge_period', handlerFactory('startChallengePeriod'))
+  var routes = {
+    '/test_cli': 'testCli',
+    '/view_proposed_channels': 'viewProposedChannels',
+    '/propose_channel': 'proposeChannel',
+    // '/_accept_channel': '_acceptChannel',
+    '/accept_proposed_channel': 'acceptProposedChannel',
+    '/get_blockchain_channel': 'getBlockchainChannel',
 
-  app.post('/add_proposed_channel', handlerFactory('addProposedChannel'))
-  app.post('/add_proposed_update', handlerFactory('addProposedUpdate'))
-  app.post('/add_accepted_update', handlerFactory('addAcceptedUpdate'))
+
+    '/propose_update': 'proposeUpdate',
+    '/view_my_proposed_updates': 'viewMyProposedUpdates',
+    '/view_their_proposed_updates': 'viewTheirProposedUpdates',
+    '/view_accepted_updates': 'viewAcceptedUpdates',
+    '/accept_update': 'acceptUpdate',
+    '/accept_last_update': 'acceptLastUpdate',
+    '/post_last_update': 'postLastUpdate',
+    '/post_update': 'postUpdate',
+    
+    '/start_challenge_period': 'startChallengePeriod',
+
+    '/try_close': 'tryClose',
+
+    '/add_proposed_channel': 'addProposedChannel',
+    '/add_proposed_update': 'addProposedUpdate',
+    '/add_accepted_update': 'addAcceptedUpdate'
+  }
+
+  for (var k in routes) {
+    app.post(k, handlerFactory(routes[k]))
+  }
 
   return app
 }

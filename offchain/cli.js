@@ -4,10 +4,11 @@ var argv = require('minimist')(process.argv.slice(2), {
   string: [
     'myAddress',
     'counterpartyAddress',
+    'myUrl',
+    'CounterpartyUrl',
     'channelId',
     'state',
-    'address0',
-    'address1',
+    'index',
     'signature0',
     'signature1'
   ]
@@ -26,7 +27,7 @@ console.log(`\nRequest:\n--------\nfrom: ${fromAddress} - ${fromUrl}\n  to: ${to
 
 // TODO: check exsistence of mandatory parameters
 
-post(argv.counterpartyUrl + '/' + argv._[0], argv, response)
+post(argv.myUrl + '/' + argv._[0], argv, response)
 
 function response (err, res, body) {
   console.log('\nResponse:\n---------\n', err || '', body, '\n')

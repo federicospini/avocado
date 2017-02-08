@@ -27,13 +27,16 @@ function checkSuccess (res) {
 }
 
 export class Logic {
-  constructor ({ storage, contract, web3, post, address, url }) {
+  constructor ({ name, storage, contract, web3, post, address, url }) {
+    this.name = name
     this.storage = storage
     this.contract = contract
     this.web3 = web3
     this.post = post
     this.address = address
     this.url = url
+
+    console.log(`${name}, address: ${address}, url: ${url}, storage: ${storage._location}`)
   }
 
   // Test CLI
@@ -52,21 +55,22 @@ export class Logic {
     return proposedChannels[channelId]
   }
 
-  // Get the channel from the blockchain, update the local, and return it
-  async getBlockchainChannel (channelId) {
+  // Get the channel from the blockchain, update the local (does it actually happen? it look like it has not been coded), and return it
+  async getBlockchainChannel ({ channelId }) {
     Bytes32(channelId)
     const channel = await this.contract.getChannel.call(
       channelId
     )
 
     return {
-      address0: channel[0],
-      address1: channel[1],
-      phase: channel[2],
-      challengePeriod: channel[3],
-      closingBlock: channel[4],
-      state: channel[5],
-      sequenceNumber: channel[6],
+      channelId: channel[0], 
+      address0: channel[1],
+      address1: channel[2],
+      phase: channel[3],
+      challengePeriod: channel[4],
+      closingBlock: channel[5],
+      state: channel[6],
+      sequenceNumber: channel[7],
     }
   }
 
@@ -139,45 +143,27 @@ export class Logic {
     let proposedChannels = this.storage.getItem('proposedChannels') || {}
     proposedChannels[channel.channelId] = channel
     this.storage.setItem('proposedChannels', proposedChannels)
+    console.log(`- ${this.name}#storeProposedChannel: ${this.storage._location}`)
 
     return { success: true }
   }
 
-
-
   // Get a channel from the proposed channel list and accept it
   async acceptProposedChannel (channelId) {
     channelId = channelId.channelId || channelId
-    console.log('channelId:')
-    console.dir(channelId)
-    console.log('proposedChannels:')
-    console.dir(this.storage.getItem('proposedChannels'))
     const channel = this.storage.getItem('proposedChannels')[channelId]
 
     if (!channel) {
       throw new Error('no channel with that id')
     }
 
-    await this.acceptChannel(
-      channel
-    )
+    await this._acceptChannel(channel)
   }
 
-
-
   // Sign the opening tx and post it to the blockchain to open the channel
-  async acceptChannel (channel) {
+  async _acceptChannel (channel) {
     const fingerprint = await this.verifyChannel(channel)
     const signature1 = await p(this.web3.eth.sign)(channel.address1, fingerprint)
-
-    console.log('ACCEPT CHANNEL')
-    console.log(`channelId: ${channel.channelId}`)
-    console.log(`address0: ${channel.address0}`)
-    console.log(`address1: ${channel.address1}`)
-    console.log(`state: ${channel.state}`)
-    console.log(`challengePeriod: ${channel.challengePeriod}`)
-    console.log(`signature0: ${channel.signature0}`)
-    console.log(`signature1: ${signature1}`)
 
     await this.contract.newChannel(
       channel.channelId,
@@ -197,8 +183,6 @@ export class Logic {
       acceptedUpdates: []
     })
   }
-
-
 
   // Propose an update to a channel, sign, store, and send to counterparty
   async proposeUpdate (params) {
@@ -225,7 +209,6 @@ export class Logic {
       fingerprint
     )
 
-
     const update = {
       channelId,
       sequenceNumber,
@@ -236,7 +219,10 @@ export class Logic {
     channel.myProposedUpdates.push(update)
     this.storeChannel(channel)
 
+    console.log(channel.counterpartyUrl + '/add_proposed_update')
     checkSuccess(await this.post(channel.counterpartyUrl + '/add_proposed_update', update))
+
+    // A confirmation that the counterparty has received the update proposal should be placed here
   }
 
 
@@ -260,44 +246,40 @@ export class Logic {
     return { success: true }
   }
 
+  async viewMyProposedUpdates ({ channelId }) {
+    return this.storage.getItem('channels')[channelId].myProposedUpdates
+  }
 
+  async viewTheirProposedUpdates ({ channelId }) {
+    return this.storage.getItem('channels')[channelId].theirProposedUpdates
+  }
+
+  async viewAcceptedUpdates ({ channelId }) {
+    return this.storage.getItem('channels')[channelId].acceptedUpdates
+  }
 
   // Sign the update and send it back to the counterparty
-  async acceptUpdate (update) {
-    console.log('.method: acceptUpdate')
-
-    const channel = this.storage.getItem('channels')[update.channelId]
-    console.log(`channel: ${inspect(channel)}`)
-
-    const fingerprint = await this.verifyUpdate({
-      channel,
-      update
-    })
-
-    console.log(`fingerprint: ${inspect(fingerprint)}`)
-
+  async acceptUpdate ({ channelId, index }) { // former method sign: async acceptUpdate (update)
+    // A check on the exsistance of the channel with id `channelId` is probably needed
+    const channel = this.storage.getItem('channels')[channelId]
+    const update = channel.theirProposedUpdates[index]
+    const fingerprint = await this.verifyUpdate({ channel, update })
     const signature = await p(this.web3.eth.sign)(
       channel['address' + channel.me],
       fingerprint
     )
 
-    console.log(`signature: ${inspect(signature)}`);
-
     update['signature' + channel.me] = signature
-
     channel.acceptedUpdates.push(update)
-
     this.storeChannel(channel)
-
     await this.post(channel.counterpartyUrl + '/add_accepted_update', update)
+    // an ack of the counterparty acceptance of the update should perhaps be stored here
   }
 
 
   // Accepts last update from theirProposedUpdates
   async acceptLastUpdate (channelId) {
-    console.log('.method: acceptLastUpdate')
     const channel = this.storage.getItem('channels')[channelId]
-    console.log(`channel: ${inspect(channel)}`)
     const lastUpdate = channel.theirProposedUpdates[
       channel.theirProposedUpdates.length - 1
     ]
@@ -305,10 +287,7 @@ export class Logic {
     await this.acceptUpdate(lastUpdate)
   }
 
-
-
-  // Called by the counterparty over the http api, gets verified and
-  // added to the accepted update list
+  // Called by the counterparty over the http api, gets verified and added to the accepted update list
   async addAcceptedUpdate (update) {
     const channel = this.storage.getItem('channels')[update.channelId]
 
@@ -318,20 +297,18 @@ export class Logic {
       checkMySignature: true
     })
 
-
     if (update.sequenceNumber <= highestAcceptedSequenceNumber(channel)) {
       throw new Error('sequenceNumber too low')
     }
 
     channel.acceptedUpdates.push(update)
-
     this.storeChannel(channel)
   }
 
 
 
   // Post last accepted update to the blockchain
-  async postLastUpdate (channelId) {
+  async postLastUpdate ({ channelId }) {
     Bytes32(channelId)
 
     const channel = this.storage.getItem('channels')[channelId]
@@ -346,10 +323,24 @@ export class Logic {
     )
   }
 
+  // Post an accepted state to the blockchain (useful to simulate a misbehaving party)
+  async postUpdate ({ channelId, index }) {
+    Bytes32(channelId)
 
+    const channel = this.storage.getItem('channels')[channelId]
+    const update = channel.acceptedUpdates[index]
+
+    await this.contract.updateState(
+      update.channelId,
+      update.sequenceNumber,
+      update.state,
+      update.signature0,
+      update.signature1
+    )
+  }
 
   // Start the challenge period, putting channel closing into motion
-  async startChallengePeriod (channelId) {
+  async startChallengePeriod ({ channelId }) {
     Bytes32(channelId)
 
     const channel = this.storage.getItem('channels')[channelId]
@@ -371,7 +362,7 @@ export class Logic {
     )
   }
 
-  async tryClose (channelId) {
+  async tryClose ({ channelId }) {
     Bytes32(channelId)
 
     // TODO is this useless?
@@ -383,6 +374,7 @@ export class Logic {
   // Gets the channels list, adds the channel, saves the channels list
   storeChannel (channel) {
     const channels = this.storage.getItem('channels') || {}
+    console.log(`- ${this.name}#storeChannel: ${this.storage._location}`)
     channels[channel.channelId] = channel
     this.storage.setItem('channels', channels)
   }

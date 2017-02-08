@@ -1,0 +1,14 @@
+TODO
+ ✔ make transaction originate from correct account (not necessarily default one) @done (17-02-07 19:39)
+ ☐ display index number next to `views` commands (the same number should then be used to index items, the best is to start from 1, not from 0)
+ ☐ [index.js] instead of defining two different contract instances that differ only for default account, make contract calls parametric with respect to execution account
+ ☐ collapse all the `view_*_proposed_updates` to only one API `view_proposed_updates`
+ ☐ fork `truffle-contract`, add `setDeafultAccount` and `setAccount` methods to `contract.js`, then update dependency of the project
+
+Currently under analysis
+ ☐ it seems that for contract transaction it always uses the nodeB account
+
+Open questions
+ ✔ what does it prevent a party to use `updateState` method of the contract to update an existing channel parameters like `sequenceNumber` @done (17-02-08 15:46)
+ ✔ is it useful to have  an Event in the `startChallengePeriod` method of the contract to report about the begin of the challenge period? @done (17-02-08 15:46)
+ ✔ is it useful to have  an Event in the `tryClose` method of the contract to report about the closure of the channel? @done (17-02-08 15:46)
